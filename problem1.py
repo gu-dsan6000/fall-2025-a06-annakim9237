@@ -4,7 +4,11 @@ import os
 import sys
 import time
 import logging
-from pyspark.sql import SparkSession
+from pathlib import Path
+from pyspark.sql.functions import (
+    regexp_extract, col, rand, to_timestamp, trim, input_file_name
+)
+from pyspark.sql import DataFrame, SparkSession
 
 # Default input path (local sample on the master node)
 input_path = "file:///home/ubuntu/spark-cluster/data/sample/"
@@ -42,34 +46,84 @@ def create_spark_session(master_url: str | None):
     logger.info("Spark session created successfully for cluster execution")
     return spark
 
+# -------------------- This is for Local--------------------
+def local_input_glob() -> str:
+    """Return file:// glob pointing to data/sample/application_*/**"""
+    abs_sample = os.path.abspath("data/sample").rstrip("/")
+    return f"file:///{abs_sample}/application_*/**"
 
-def solve_problem1(spark: SparkSession, path: str):
-    """
-    Peek mode:
-    - Read all files under path as text (1 line per record)
-    - Show sample lines and total count
-    - No helper function; minimal inline normalization only.
-    """
-    from pyspark.sql.functions import input_file_name
+def local_out_dir() -> Path:
+    """Outputs go to repo-local data/output/"""
+    d = Path("data/output")
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
-    p = path.rstrip("/")
-    if ("application_*" in p) or p.endswith("/**"):
-        read_path = p
-    else:
-        read_path = f"{p}/application_*/**"
+# -------------------- Read --------------------
+def read_raw_local(spark: SparkSession) -> DataFrame:
+    read_path = local_input_glob()
+    print("=" * 70)
+    print("LOCAL TEST — using professor's regex")
+    print(f"Reading from: {read_path}")
+    print("=" * 70)
+    return spark.read.text(read_path).withColumn("file_path", input_file_name())
 
-    logger.info(f"Reading from: {read_path}")
-
-    df = spark.read.text(read_path).withColumn("file_path", input_file_name())
-
-    print("\n=== First 10 rows ===")
-    df.show(10, truncate=False)
-    print("=== End of 10 rows ===\n")
-
-    total_count = df.count()
-    logger.info(f"Total records (lines) in DataFrame: {total_count}")
-    print(f"Total records (lines) in DataFrame: {total_count}")
+# -------------------- Parse (Code from ReadMe that Professor given) --------------------
+def parse_logs_with_ids(logs_df: DataFrame) -> DataFrame:
+    logs_parsed = logs_df.select(
+        regexp_extract('value', r'^(\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})', 1).alias('timestamp'),
+        regexp_extract('value', r'(INFO|WARN|ERROR|DEBUG)', 1).alias('log_level'),
+        regexp_extract('value', r'(INFO|WARN|ERROR|DEBUG)\s+([^:]+):', 2).alias('component'),
+        col('value').alias('message'),
+        col('file_path')
+    )
+    df = logs_parsed.withColumn(
+        'application_id', regexp_extract('file_path', r'application_(\d+_\d+)', 0)
+    ).withColumn(
+        'container_id', regexp_extract('file_path', r'(container_\d+_\d+_\d+_\d+)', 1)
+    )
+    df = df.withColumn('ts', to_timestamp('timestamp', 'yy/MM/dd HH:mm:ss'))
     return df
+
+
+def write_counts(parsed_df: DataFrame, out_dir: Path) -> Path:
+    """data/output/problem1_counts.csv"""
+    has_level = parsed_df.where(trim(col("log_level")) != "")
+    out_path = out_dir / "problem1_counts.csv"
+    (has_level.groupBy("log_level")
+              .count()
+              .orderBy("log_level")
+              .toPandas()
+              .to_csv(out_path, index=False))
+    print(f"[OK] Wrote {out_path}")
+    return out_path
+
+def write_sample(parsed_df: DataFrame, out_dir: Path, n: int = 10) -> Path:
+    """data/output/problem1_sample.csv"""
+    has_level = parsed_df.where(trim(col("log_level")) != "")
+    out_path = out_dir / "problem1_sample.csv"
+    (has_level.orderBy(rand())
+              .limit(n)
+              .select("message", "log_level")
+              .toPandas()
+              .to_csv(out_path, index=False))
+    print(f"[OK] Wrote {out_path}")
+    return out_path
+
+# -------------------- Trouble shooting --------------------
+def _to_glob(path: str) -> str:
+    p = path.rstrip("/")
+    return p if ("application_*" in p or p.endswith("/**")) else f"{p}/application_*/**"
+
+def _resolve_out_dir(input_path: str) -> Path:
+    if input_path.startswith("file://"):
+        out = Path("data/output")
+    elif input_path.startswith("s3a://"):
+        out = Path.home() / "spark-cluster"
+    else:
+        out = Path("data/output")
+    out.mkdir(parents=True, exist_ok=True)
+    return out
+
 
 
 
@@ -133,16 +187,24 @@ def main():
             logger.info(f"SPARK_LOGS_BUCKET detected; overriding path to: {path}")
 
     try:
-        logger.info("Starting Problem 1 analysis (peek mode)")
-        _ = solve_problem1(spark, path)
+        logger.info("Problem 1 — building outputs with professor regex")
+        raw = read_raw_local(spark)
+        parsed = parse_logs_with_ids(raw)
+
+        out_dir = _resolve_out_dir(path)
+
+        write_counts(parsed, out_dir)
+        write_sample(parsed, out_dir, n=10)
+        #write_summary(raw, parsed, out_dir)
         success = True
-        logger.info("Problem 1 analysis completed successfully")
+        logger.info("Problem 1 outputs created successfully")
     except Exception as e:
         logger.exception(f"Error occurred while solving Problem 1: {e}")
         print(f"❌ Error solving Problem 1: {e}")
         success = False
     finally:
         spark.stop()
+
 
     elapsed = time.time() - t0
     logger.info(f"Total execution time: {elapsed:.2f} seconds")
