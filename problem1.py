@@ -38,29 +38,29 @@ def create_spark_session(master_url: str | None):
     if master_url:
         builder = builder.master(master_url)
     spark = builder.getOrCreate()
+    spark.sparkContext.setLogLevel("WARN")
     logger.info("Spark session created successfully for cluster execution")
     return spark
 
 
-def solve_problem1(spark, path: str):
+def solve_problem1(spark: SparkSession, path: str):
     """
-    Minimal 'peek' for Problem 1:
-    - Read text logs (recursively) from `path`
-    - Show first 10 lines
-    - Print total line count
+    Peek mode:
+    - Read all files under path as text (1 line per record)
+    - Show sample lines and total count
+    - No helper function; minimal inline normalization only.
     """
-    logger.info("Starting Problem 1 (peek)")
-    print("=" * 70)
-    print("PROBLEM 1: Log Level Distribution (peek)")
-    print("=" * 70)
+    from pyspark.sql.functions import input_file_name
 
-    logger.info(f"Reading text files from: {path}")
-    print("Reading all text files into a single DataFrame...")
-    df = (
-        spark.read
-        .option("recursiveFileLookup", "true")   # read nested files under application_* dirs
-        .text(path)
-    )  # single column: 'value'
+    p = path.rstrip("/")
+    if ("application_*" in p) or p.endswith("/**"):
+        read_path = p
+    else:
+        read_path = f"{p}/application_*/**"
+
+    logger.info(f"Reading from: {read_path}")
+
+    df = spark.read.text(read_path).withColumn("file_path", input_file_name())
 
     print("\n=== First 10 rows ===")
     df.show(10, truncate=False)
@@ -70,6 +70,7 @@ def solve_problem1(spark, path: str):
     logger.info(f"Total records (lines) in DataFrame: {total_count}")
     print(f"Total records (lines) in DataFrame: {total_count}")
     return df
+
 
 
 def main():
