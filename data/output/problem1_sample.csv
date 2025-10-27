@@ -1,0 +1,11 @@
+message,log_level
+17/03/29 10:07:49 INFO spark.MapOutputTrackerWorker: Got the output locations,INFO
+"17/03/29 10:11:19 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 2, fetching them",INFO
+17/03/29 10:07:32 INFO util.Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 51182.,INFO
+17/03/29 10:11:17 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 82,INFO
+"17/03/29 10:04:57 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 0, fetching them",INFO
+"17/03/29 10:05:01 INFO python.PythonRunner: Times: total = 42, boot = -5916, init = 5958, finish = 0",INFO
+17/03/29 10:04:44 INFO ExecutorRunnable: Setting up ContainerLaunchContext,INFO
+17/03/29 10:11:14 INFO storage.BlockManager: Found block rdd_2_2 locally,INFO
+17/03/29 10:03:26 INFO storage.ShuffleBlockFetcherIterator: Started 2 remote fetches in 1 ms,INFO
+17/03/29 10:11:17 INFO executor.Executor: Running task 17.0 in stage 5.0 (TID 85),INFO
