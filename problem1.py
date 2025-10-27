@@ -109,6 +109,29 @@ def write_sample(parsed_df: DataFrame, out_dir: Path, n: int = 10) -> Path:
     print(f"[OK] Wrote {out_path}")
     return out_path
 
+def write_summary(raw: DataFrame, parsed: DataFrame, out_dir: Path) -> Path:
+    total_lines = raw.count()
+    has_level = parsed.where(trim(col("log_level")) != "")
+    lines_with_levels = has_level.count()
+    counts_pd = (has_level.groupBy("log_level").count().orderBy("log_level")).toPandas()
+    unique_levels = 0 if counts_pd.empty else counts_pd["log_level"].nunique()
+
+    total_for_pct = max(lines_with_levels, 1)
+    pct_lines = []
+    for _, r in counts_pd.iterrows():
+        pct = 100.0 * r["count"] / total_for_pct
+        pct_lines.append(f"  {r['log_level']:<5}: {r['count']:>10,} ({pct:6.2f}%)")
+
+    out_path = out_dir / "problem1_summary.txt"
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(f"Total log lines processed: {total_lines:,}\n")
+        f.write(f"Total lines with log levels: {lines_with_levels:,}\n")
+        f.write(f"Unique log levels found: {unique_levels}\n\n")
+        f.write("Log level distribution:\n")
+        f.write("\n".join(pct_lines) + "\n")
+    print(f"[OK] Wrote {out_path}")
+    return out_path
+
 # -------------------- Trouble shooting --------------------
 def _to_glob(path: str) -> str:
     p = path.rstrip("/")
@@ -195,7 +218,7 @@ def main():
 
         write_counts(parsed, out_dir)
         write_sample(parsed, out_dir, n=10)
-        #write_summary(raw, parsed, out_dir)
+        write_summary(raw, parsed, out_dir)
         success = True
         logger.info("Problem 1 outputs created successfully")
     except Exception as e:
