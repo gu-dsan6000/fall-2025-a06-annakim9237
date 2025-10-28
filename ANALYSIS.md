@@ -137,4 +137,82 @@ Most heavily used clusters:
 ```
 4. problem2_bar_chart.png: Bar chart visualization
 
+## Explanation of the visualizations(bar_chart)
+This bar chart shows how many applications ran in each cluster.
+The first cluster (1485248649253) ran 181 applications, much more than all others.
+Most other clusters had only a few or one application.
+It means that one cluster was used a lot more than the rest.
+
+![Applications per Cluster](data/output/problem2_bar_chart.png)
+
+
+
 5. problem2_density_plot.png: Faceted density plot visualization
+
+## Explanation of the visualizations(density_plot)
+This chart shows how long jobs ran in the busiest cluster (ID 1485248649253).
+Most jobs finished very fast (on the left side), and only a few took much longer.
+The x-axis uses a log scale, so even very long jobs can be seen clearly.
+It means that most jobs were short, but there were some that lasted a long time.
+
+![Duration Distribution](data/output/problem2_density_plot.png)
+
+
+# Performance & Optimizations
+
+## Problem 1 Screenshots — Spark Web UI
+
+
+*3 workers, 6 cores; one Problem1 app running, one completed.*
+
+![Master UI – cluster overview](data/captures/problem1-1.jpeg)  
+
+
+
+*Active job doing toPandas; completed job listed 3,852 S3 paths successfully.*
+
+![Jobs UI – active/completed jobs](data/captures/problem1-2.jpeg)  
+
+
+
+*Driver + 3 executors active (6 cores), 8 active tasks, ~6.1 GiB input, 0 failures.*
+
+![Executors UI – resource usage](data/captures/problem1-3.png)  
+
+
+
+*Outputs written under /home/ubuntu/spark-cluster/, total time 371.03s. in the cluster*
+
+![Terminal – cluster run](data/captures/problem1-4.png)  
+
+
+
+*Outputs under data/output/, quick run finished in 18.23s. in the local*
+
+![Terminal – quick peek run](data/captures/problem1-5.jpeg)  
+
+
+
+## Problem 2 Screenshots — Spark Web UI
+
+ 
+**3 workers and 6 cores are active; the Problem2-Timeline-Summary app is running, while two previous apps from Problem 1 are completed.**
+
+![Master UI – cluster overview](data/captures/problem2-1.png) 
+
+
+**Shows one active job (toPandas in problem2.py) and one completed job that successfully listed 3 852 S3 paths.**
+
+![Jobs UI – active/completed jobs](data/captures/problem2-2.png)  
+
+
+
+**Driver + 3 executors running (6 cores total); 6 active tasks, ~1.6 GiB input, no failures — execution was smooth.**
+
+![Executors UI – resource usage](data/captures/problem2-3.png)  
+
+
+
+**All five output files (problem2_timeline.csv, cluster_summary.csv, stats.txt, bar_chart.png, density_plot.png) were generated under data/output/. Total execution time ≈ 912 seconds.**
+
+![Terminal – cluster run](data/captures/problem2-4.png) 
