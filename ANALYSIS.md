@@ -160,6 +160,19 @@ It means that most jobs were short, but there were some that lasted a long time.
 
 # Performance & Optimizations
 
+The Spark job ran fast in local mode and slower in the cluster. Cluster mode took longer because it read a large amount of log data from S3. So, I test on the local and run on the cluster after done. 
+
+**I used some optimizations to make it better:**
+
+
+1. Used IAM Role credentials for S3 access (InstanceProfileCredentialsProvider)
+
+2. Filtered out empty log levels before counting (trim(col("log_level")) != "")
+
+3. 
+
+These settings helped Spark handle large data more efficiently and avoid unnecessary computation.
+
 ## Problem 1 Screenshots — Spark Web UI
 
 
