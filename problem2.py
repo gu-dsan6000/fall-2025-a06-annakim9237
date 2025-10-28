@@ -15,8 +15,11 @@ from pyspark.sql.functions import (
 )
 
 # -------------------- Defaults (LOCAL MODE) --------------------
-LOCAL_SAMPLE_DIR = Path("data/sample")
-input_path = str(LOCAL_SAMPLE_DIR)
+# LOCAL_SAMPLE_DIR = Path("data/sample")
+# input_path = str(LOCAL_SAMPLE_DIR)
+
+# -------------------- Defaults (CLUSTER MODE: read from S3) --------------------
+input_path = "s3a://hk1105-assignment-spark-cluster-logs/data/"
 
 # --- Logging setup ---
 logging.basicConfig(
@@ -170,21 +173,12 @@ def save_bar_chart(cluster_df: DataFrame, out_dir: Path) -> Path:
     return out_path
 
 def save_density_plot(timeline_df: DataFrame, cluster_df: DataFrame, out_dir: Path) -> Path:
-    """
-    problem2_density_plot.png
-    - 최대 num_applications 클러스터 선택
-    - 각 앱의 duration_sec = end_ts - start_ts (초)
-    - 히스토그램(density=True) + KDE overlay
-    - x축 log 스케일
-    - 제목에 sample count (n=...) 표기
-    """
-    # 1) 최대 클러스터 선택
+
     top_row = cluster_df.orderBy(F.col("num_applications").desc(), "cluster_id").limit(1).collect()
     if not top_row:
         return out_dir / "problem2_density_plot.png"
     top_cid = top_row[0]["cluster_id"]
 
-    # 2) 타임라인을 timestamp로 되돌리고 duration 계산
     with_ts = (
         timeline_df
         .withColumn("start_ts", F.to_timestamp("start_time", "yyyy-MM-dd HH:mm:ss"))
@@ -196,7 +190,6 @@ def save_density_plot(timeline_df: DataFrame, cluster_df: DataFrame, out_dir: Pa
 
     pdf = with_ts.toPandas()
     if pdf.empty:
-        # 빈 경우라도 파일은 만들어 둠
         out_path = out_dir / "problem2_density_plot.png"
         plt.figure(figsize=(7, 4))
         plt.title(f"Job Duration Distribution (Cluster {top_cid}) — n=0")
