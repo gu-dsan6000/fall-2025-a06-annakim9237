@@ -70,6 +70,8 @@ Log level distribution:
 | WARN      |      9,595 |    0.035 |
 | **Total** | **27,410,336** | **100.000** |
 
+Most of the logs are INFO messages (about 99.9%), while ERROR and WARN messages are very few (each about 0.04%). This means the system ran normally, with almost no serious problems.
+
 
 
 # Problem 2 — Cluster Usage Analysis
@@ -169,7 +171,7 @@ The Spark job ran fast in local mode and slower in the cluster. Cluster mode too
 
 2. Filtered out empty log levels before counting (trim(col("log_level")) != "")
 
-3. 
+3. Used DataFrame instead of RDD
 
 These settings helped Spark handle large data more efficiently and avoid unnecessary computation.
 
