@@ -5,7 +5,9 @@ import sys
 import time
 import logging
 from pathlib import Path
-
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.functions import (
@@ -134,6 +136,105 @@ def build_cluster_summary(timeline_df: DataFrame) -> DataFrame:
     )
     return summary
 
+def save_bar_chart(cluster_df: DataFrame, out_dir: Path) -> Path:
+
+    pdf = cluster_df.orderBy(F.col("num_applications").desc(), "cluster_id").toPandas()
+    if pdf.empty:
+        return out_dir / "problem2_bar_chart.png"  # nothing to draw
+
+    x = pdf["cluster_id"].astype(str).tolist()
+    y = pdf["num_applications"].astype(int).tolist()
+
+    plt.figure(figsize=(max(8, len(x)*0.6), 5))
+    # color map
+    cmap = plt.get_cmap("tab20")
+    colors = [cmap(i % 20) for i in range(len(x))]
+
+    bars = plt.bar(x, y, color=colors)
+
+    # value labels
+    for b, v in zip(bars, y):
+        plt.text(b.get_x() + b.get_width()/2, b.get_height(),
+                 f"{v}", ha="center", va="bottom", fontsize=10)
+
+    plt.xlabel("Cluster ID")
+    plt.ylabel("Number of applications")
+    plt.title("Applications per Cluster")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+
+    out_path = out_dir / "problem2_bar_chart.png"
+    plt.savefig(out_path, dpi=150)
+    plt.close()
+    print(f"[OK] Wrote {out_path}")
+    return out_path
+
+def save_density_plot(timeline_df: DataFrame, cluster_df: DataFrame, out_dir: Path) -> Path:
+    """
+    problem2_density_plot.png
+    - 최대 num_applications 클러스터 선택
+    - 각 앱의 duration_sec = end_ts - start_ts (초)
+    - 히스토그램(density=True) + KDE overlay
+    - x축 log 스케일
+    - 제목에 sample count (n=...) 표기
+    """
+    # 1) 최대 클러스터 선택
+    top_row = cluster_df.orderBy(F.col("num_applications").desc(), "cluster_id").limit(1).collect()
+    if not top_row:
+        return out_dir / "problem2_density_plot.png"
+    top_cid = top_row[0]["cluster_id"]
+
+    # 2) 타임라인을 timestamp로 되돌리고 duration 계산
+    with_ts = (
+        timeline_df
+        .withColumn("start_ts", F.to_timestamp("start_time", "yyyy-MM-dd HH:mm:ss"))
+        .withColumn("end_ts",   F.to_timestamp("end_time",   "yyyy-MM-dd HH:mm:ss"))
+        .withColumn("duration_sec", F.col("end_ts").cast("long") - F.col("start_ts").cast("long"))
+        .where( (F.col("cluster_id") == top_cid) & (F.col("duration_sec") > 0) )
+        .select("duration_sec")
+    )
+
+    pdf = with_ts.toPandas()
+    if pdf.empty:
+        # 빈 경우라도 파일은 만들어 둠
+        out_path = out_dir / "problem2_density_plot.png"
+        plt.figure(figsize=(7, 4))
+        plt.title(f"Job Duration Distribution (Cluster {top_cid}) — n=0")
+        plt.xlabel("Duration (seconds, log scale)")
+        plt.ylabel("Density")
+        plt.savefig(out_path, dpi=150)
+        plt.close()
+        print(f"[OK] Wrote {out_path}")
+        return out_path
+
+    durations = pdf["duration_sec"].to_numpy()
+    n = len(durations)
+
+    plt.figure(figsize=(7, 4))
+    plt.hist(durations, bins=50, density=True, alpha=0.5)
+
+ 
+    try:
+        from scipy.stats import gaussian_kde
+        xs = np.linspace(durations.min(), durations.max(), 400)
+        kde = gaussian_kde(durations.astype(float))
+        ys = kde(xs)
+        plt.plot(xs, ys, linewidth=2)
+    except Exception:
+        pass  
+
+    plt.xscale("log")
+    plt.xlabel("Duration (seconds, log scale)")
+    plt.ylabel("Density")
+    plt.title(f"Job Duration Distribution (Cluster {top_cid}) — n={n}")
+    plt.tight_layout()
+
+    out_path = out_dir / "problem2_density_plot.png"
+    plt.savefig(out_path, dpi=150)
+    plt.close()
+    print(f"[OK] Wrote {out_path}")
+    return out_path
+
 
 def write_timeline(timeline_df: DataFrame, out_dir: Path) -> Path:
     out_path = out_dir / "problem2_timeline.csv"
@@ -215,6 +316,9 @@ def main():
         write_cluster_summary(cluster_df, out_dir)
         write_stats(timeline_df, cluster_df, out_dir)
 
+        save_bar_chart(cluster_df, out_dir)
+        save_density_plot(timeline_df, cluster_df, out_dir)
+
         success = True
     except Exception as e:
         logger.exception(f"Error in Problem 2: {e}")
@@ -234,6 +338,8 @@ def main():
         print(f"  {out_dir / 'problem2_timeline.csv'}")
         print(f"  {out_dir / 'problem2_cluster_summary.csv'}")
         print(f"  {out_dir / 'problem2_stats.txt'}")
+        print(f"  {out_dir / 'problem2_bar_chart.png'}")
+        print(f"  {out_dir / 'problem2_density_plot.png'}")
     print("=" * 70)
     return 0 if success else 1
 
