@@ -11,9 +11,9 @@ from pyspark.sql.functions import (
 from pyspark.sql import DataFrame, SparkSession
 
 # Default input path (local sample on the master node)
-input_path = "file:///home/ubuntu/spark-cluster/data/sample/"
+#input_path = "file:///home/ubuntu/spark-cluster/data/sample/"
 # For full dataset on S3 (manual switch if you want)
-# input_path = "s3a://hk1105-assignment-spark-cluster-logs/data/"
+input_path = "s3a://hk1105-assignment-spark-cluster-logs/data/"
 
 # --- Logging setup ---
 logging.basicConfig(
@@ -46,23 +46,31 @@ def create_spark_session(master_url: str | None):
     logger.info("Spark session created successfully for cluster execution")
     return spark
 
-# -------------------- This is for Local--------------------
-def local_input_glob() -> str:
-    """Return file:// glob pointing to data/sample/application_*/**"""
-    abs_sample = os.path.abspath("data/sample").rstrip("/")
-    return f"file:///{abs_sample}/application_*/**"
+# -------------------- This is for local--------------------
+# def local_input_glob() -> str:
+#     """Return file:// glob pointing to data/sample/application_*/**"""
+#     abs_sample = os.path.abspath("data/sample").rstrip("/")
+#     return f"file:///{abs_sample}/application_*/**"
 
-def local_out_dir() -> Path:
-    """Outputs go to repo-local data/output/"""
-    d = Path("data/output")
-    d.mkdir(parents=True, exist_ok=True)
-    return d
+# def local_out_dir() -> Path:
+#     """Outputs go to repo-local data/output/"""
+#     d = Path("data/output")
+#     d.mkdir(parents=True, exist_ok=True)
+#     return d
 
 # -------------------- Read --------------------
-def read_raw_local(spark: SparkSession) -> DataFrame:
-    read_path = local_input_glob()
+# def read_raw_local(spark: SparkSession) -> DataFrame:
+#     read_path = local_input_glob()
+#     print("=" * 70)
+#     print("LOCAL TEST — using professor's regex")
+#     print(f"Reading from: {read_path}")
+#     print("=" * 70)
+#     return spark.read.text(read_path).withColumn("file_path", input_file_name())
+
+def read_raw(spark: SparkSession, base_path: str) -> DataFrame:
+    read_path = _to_glob(base_path)
     print("=" * 70)
-    print("LOCAL TEST — using professor's regex")
+    print("READING LOGS")
     print(f"Reading from: {read_path}")
     print("=" * 70)
     return spark.read.text(read_path).withColumn("file_path", input_file_name())
@@ -204,14 +212,15 @@ def main():
 
         # Env override only if path was not explicitly provided
         env_bucket = os.getenv("SPARK_LOGS_BUCKET")
-        if env_bucket:
+        if env_bucket and not net_id:
             bucket_a = env_bucket.replace("s3://", "s3a://", 1)
             path = f"{bucket_a}/data/"
             logger.info(f"SPARK_LOGS_BUCKET detected; overriding path to: {path}")
 
     try:
         logger.info("Problem 1 — building outputs with professor regex")
-        raw = read_raw_local(spark)
+        #raw = read_raw_local(spark)
+        raw = read_raw(spark, path)
         parsed = parse_logs_with_ids(raw)
 
         out_dir = _resolve_out_dir(path)
@@ -234,9 +243,12 @@ def main():
     print(f"Total execution time: {elapsed:.2f} seconds")
 
     print("\n" + "=" * 70)
-    print("✅ PROBLEM 1 COMPLETED SUCCESSFULLY! (peek mode)" if success else "❌ Problem 1 failed")
+    print("✅ PROBLEM 1 COMPLETED SUCCESSFULLY! " if success else "❌ Problem 1 failed")
     if success:
         print("(This script only prints; it does not write output files yet.)")
+        print(f"  {out_dir / 'problem1_counts.csv'}")
+        print(f"  {out_dir / 'problem1_sample.csv'}")
+        print(f"  {out_dir / 'problem1_summary.txt'}")
     print("=" * 70)
     return 0 if success else 1
 

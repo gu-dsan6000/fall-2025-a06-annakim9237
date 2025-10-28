@@ -1,11 +1,11 @@
 message,log_level
-17/03/29 10:07:49 INFO spark.MapOutputTrackerWorker: Got the output locations,INFO
-"17/03/29 10:11:19 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 2, fetching them",INFO
-17/03/29 10:07:32 INFO util.Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 51182.,INFO
-17/03/29 10:11:17 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 82,INFO
-"17/03/29 10:04:57 INFO spark.MapOutputTrackerWorker: Don't have map outputs for shuffle 0, fetching them",INFO
-"17/03/29 10:05:01 INFO python.PythonRunner: Times: total = 42, boot = -5916, init = 5958, finish = 0",INFO
-17/03/29 10:04:44 INFO ExecutorRunnable: Setting up ContainerLaunchContext,INFO
-17/03/29 10:11:14 INFO storage.BlockManager: Found block rdd_2_2 locally,INFO
-17/03/29 10:03:26 INFO storage.ShuffleBlockFetcherIterator: Started 2 remote fetches in 1 ms,INFO
-17/03/29 10:11:17 INFO executor.Executor: Running task 17.0 in stage 5.0 (TID 85),INFO
+17/06/09 17:28:26 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 136036,INFO
+17/06/06 22:05:04 INFO storage.BlockManager: Found block rdd_2_7 locally,INFO
+"17/06/09 21:28:41 INFO storage.MemoryStore: Block rdd_3719_1 stored as bytes in memory (estimated size 16.0 B, free 3.3 MB)",INFO
+"17/06/09 17:30:17 INFO python.PythonRunner: Times: total = 40, boot = -30, init = 70, finish = 0",INFO
+17/06/09 15:45:31 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 2696,INFO
+17/06/09 17:23:31 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 2530,INFO
+"17/06/09 11:37:48 INFO python.PythonRunner: Times: total = 39, boot = -33, init = 72, finish = 0",INFO
+17/06/09 12:04:12 INFO executor.Executor: Finished task 34.0 in stage 7064.0 (TID 283038). 2364 bytes result sent to driver,INFO
+17/06/09 17:45:40 INFO executor.Executor: Finished task 15.0 in stage 1463.0 (TID 58572). 2128 bytes result sent to driver,INFO
+"17/06/09 17:12:13 INFO storage.MemoryStore: Block rdd_2887_36 stored as bytes in memory (estimated size 16.0 B, free 6.1 MB)",INFO
