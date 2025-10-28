@@ -37,7 +37,7 @@ def create_spark_session(master_url: str | None):
     builder = (
         SparkSession.builder
         .master(master_url)
-        .appName("Problem2-Timeline-Summary (Local)")
+        .appName("Problem2-Timeline-Summary")
         .config("spark.sql.adaptive.enabled", "true")
 
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
